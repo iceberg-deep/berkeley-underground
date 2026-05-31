@@ -1,0 +1,60 @@
+#!/bin/sh
+# Shared helpers for the build pipeline. Source this from each build/NN-*.sh.
+# POSIX sh (the dev host's /bin/sh) — keep it portable.
+
+set -eu
+
+# Resolve repo root regardless of CWD (this file lives in build/).
+LIB_DIR=$(cd "$(dirname "$0")" && pwd)
+REPO_ROOT=$(cd "$LIB_DIR/.." && pwd)
+export REPO_ROOT
+
+# Load box parameters.
+. "$REPO_ROOT/config/box.env"
+
+# ── logging ────────────────────────────────────────────────────────────────
+_ts() { date '+%H:%M:%S'; }
+log()  { printf '\033[1;36m[%s] %s\033[0m\n' "$(_ts)" "$*" >&2; }
+ok()   { printf '\033[1;32m[%s] OK: %s\033[0m\n' "$(_ts)" "$*" >&2; }
+warn() { printf '\033[1;33m[%s] WARN: %s\033[0m\n' "$(_ts)" "$*" >&2; }
+die()  { printf '\033[1;31m[%s] FATAL: %s\033[0m\n' "$(_ts)" "$*" >&2; exit 1; }
+
+# ── host tool checks ─────────────────────────────────────────────────────────
+need() { command -v "$1" >/dev/null 2>&1 || die "missing host tool: $1 (run build/00-deps.sh)"; }
+
+# QEMU binary (overridable via box.env).
+QEMU_BIN="${BOX_QEMU:-qemu-system-i386}"
+
+# Absolute paths derived from box.env (which uses repo-relative paths).
+MEDIA_DIR="$REPO_ROOT/$BOX_MEDIA_DIR"
+DIST_DIR="$REPO_ROOT/$BOX_DIST_DIR"
+WORK_DIR="$REPO_ROOT/$BOX_WORK_DIR"
+IMAGE="$REPO_ROOT/$BOX_IMAGE"
+PAYLOAD_DIR="$REPO_ROOT/build/payloads"
+
+mkdirs() { mkdir -p "$MEDIA_DIR" "$DIST_DIR" "$WORK_DIR"; }
+
+# ── QEMU invocation (single source of truth) ──────────────────────────────────
+# Usage: qemu_args_base   -> echoes the common machine definition.
+# Callers append -fda/-cdrom/-hdb/-boot/-serial as needed.
+qemu_args_base() {
+  printf '%s\n' \
+    -M "$BOX_MACHINE" -cpu "$BOX_CPU" -m "$BOX_MEM_MB" \
+    -drive "file=$IMAGE,format=qcow2,if=ide,index=0,media=disk" \
+    -rtc base=localtime -no-reboot
+}
+
+# Host-only user-mode networking with NO route/DNS to the internet, plus the
+# period-service port forwards the player needs. 'restrict=on' blocks the guest
+# from reaching anything but the host-forwarded ports — this is the safety
+# guarantee (no bridged/internet access). Build-time installs that legitimately
+# need upstream fetch override this with their own -netdev.
+qemu_net_hostonly() {
+  hostfwd="hostfwd=tcp:127.0.0.1:${BOX_FWD_TELNET}-:23"
+  hostfwd="$hostfwd,hostfwd=tcp:127.0.0.1:${BOX_FWD_FTP}-:21"
+  hostfwd="$hostfwd,hostfwd=tcp:127.0.0.1:${BOX_FWD_SHELL}-:513"
+  printf '%s\n' -netdev "user,id=n0,restrict=on,$hostfwd" -device "ne2k_pci,netdev=n0"
+}
+
+# ── checksum helpers ───────────────────────────────────────────────────────────
+sha256_of() { sha256sum "$1" | awk '{print $1}'; }
