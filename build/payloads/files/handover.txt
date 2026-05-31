@@ -1,0 +1,16 @@
+From: pei (systems)
+To:   new contractor
+Re:   account handover -- gaia
+
+Couple of things before I'm out for the week:
+
+  * I set you up a login on gaia.  username is your first name (brian),
+    temp password is  newriver  -- PLEASE change it on first login with
+    passwd(1).  It's only a contractor stub account, low privilege.
+
+  * Don't touch the source build trees under /usr/src/sys -- the Motorola
+    job is mid-migration and dono owns that work.
+
+  * If telnet is being flaky just use it from inside; the r-tools are up.
+
+-- pei

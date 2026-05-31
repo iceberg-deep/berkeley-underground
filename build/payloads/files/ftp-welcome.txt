@@ -1,0 +1,9 @@
+                      GAIA  (Internex Online)  --  anonymous FTP
+            ===========================================================
+
+  This server is for staff file exchange only.  Public uploads are disabled.
+
+  >> SYSADMIN HANDOVER NOTES  (pub/incoming/handover.txt) -- please read <<
+
+  If you are the new contractor: your shell account has been created.
+  Welcome aboard.   -- pei (systems)

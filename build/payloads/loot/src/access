@@ -1,0 +1,7 @@
+# MANIAC rule base  (the file "cat access" reads in TIMELINE 4014)
+# SYNTHETIC -- invented addresses, no real Motorola infrastructure.
+# action  src/mask              proto  dport
+permit    192.70.231.0/24       tcp    25      # corp mail
+permit    192.70.231.0/24       tcp    53      # dns
+permit    10.0.0.0/8            tcp    513     # internal rlogin (!)
+deny      0.0.0.0/0             tcp    0        # default deny

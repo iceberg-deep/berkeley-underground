@@ -1,0 +1,21 @@
+MANIAC -- Motorola Advanced Network Internet Access Controller
+Firewall reference source, internal distribution 1.3.4
+
+  *** SYNTHETIC PLACEHOLDER SOURCE -- NOT REAL MOTOROLA CODE ***
+
+This tree is invented for the Berkeley Underground CTF to stand in for the
+"MANIAC firewall source" that was exfiltrated from spsgate.sps.mot.com in the
+Feb 1995 sessions (cf. ~/takedown TIMELINE 4014/4017, maniac1.3.4.tar.Z,
+1,845,983 bytes -> escape.com -> Netcom). It contains no proprietary material.
+
+The objective of this box mirrors the historical one: get root, find this
+tree, and EXFILTRATE the tarball off the machine to a host you control. The
+proof you succeeded is in your possession of the archive after transfer.
+
+Contents:
+  maniac.c     packet inspection main loop (stub)
+  acl.c        access-control list evaluation (stub)
+  maniac.h     shared declarations (stub)
+  access       the firewall rule base ("cat access" in 4014)
+  Makefile     build glue (stub)
+  flag.txt     <-- your trophy
