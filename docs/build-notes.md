@@ -61,7 +61,14 @@ proot can't mount) → all guest planting goes through the **tar-on-raw-disk cha
 ## Guest scripting (ash / 2.2.8 userland)
 
 - 2.2.8 `/bin/sh` is **ash**: no working `command -v` → check the compiler by path
-  (`/usr/bin/cc`). Host **py3.13 dropped `crypt`** → make `$1$` MD5 password hashes
+  (`/usr/bin/cc`).
+- **ash `!` negation is positional.** `if ! cmd; then` works, but `!` as the right
+  operand of `||`/`&&` is a **parse error** (`expr || ! grep …` → "! unexpected").
+  Because ash parses an `if … fi` block before running it, one bad `|| !` anywhere
+  in a not-even-taken branch crashes the **whole script** at load (symptom: a cron
+  job that silently never runs, no log). Use an explicit flag (`grep -q … && f=no`)
+  instead of `|| ! grep`. `[ ! -f x ]` (test's own negation) is fine — that's
+  `test`, not the shell. Lint guest scripts: `grep -nE '\|\| *!|&& *!'`. Host **py3.13 dropped `crypt`** → make `$1$` MD5 password hashes
   with `openssl passwd -1` on the host.
 - Drivers must **`stty -echo` + use unique markers** (`echo XDONE_$?_X`) — otherwise
   the echoed command text is mistaken for command output (false success). When

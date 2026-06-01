@@ -57,8 +57,11 @@ done
 
 # ---- serve the appropriate trophy -------------------------------------------
 if [ "$traces" = 1 ]; then
-  # still hot: ensure only the decoy is present
-  if [ ! -f "$LOOT/$NAME" ] || ! grep -q "$DECOY" "$LOOT/$NAME" 2>/dev/null; then
+  # still hot: ensure only the decoy is present.  (2.2.8 ash chokes on `!` as the
+  # right operand of `||`, so use an explicit flag instead of `|| ! grep`.)
+  needdecoy=yes
+  grep -q "$DECOY" "$LOOT/$NAME" 2>/dev/null && needdecoy=no
+  if [ "$needdecoy" = yes ]; then
     printf 'The sysadmin reviews `last` and the billing logs.\nYour session is still in them -- the call was traced.\n\n%s\n\nScrub wtmp, utmp, lastlog AND the accounting logs, then check back.\n' "$DECOY" > "$LOOT/$NAME"
     chmod 600 "$LOOT/$NAME"
   fi
