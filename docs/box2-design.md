@@ -126,7 +126,21 @@ New for Box 2:
 3. Toolkit form: ship compilable `zap.c` (player compiles, Box-1 style) vs a
    pre-built `zap` binary in the cache.
 
-## Series arc after Box 2
+## Series arc — the 4-box spine (pause at 4; no hard ceiling)
 
-Box 1 break-in → Box 2 cover-up → Box 3 (sniffer cred-harvest / true multi-host
-pivot) → persistence/backdoors. See `docs/primer.md`, `docs/historicity.md`.
+The planned spine is **four** boxes, each teaching one distinct skill from the
+captured sessions:
+
+1. **Box 1 — gaia: the break-in.** Trust (`.rhosts`) + setuid `newgrp`. *(done)*
+2. **Box 2 — teal "The Traced Call": the cover-up.** Anti-forensics — scrub the
+   login + accounting logs to release the flag. *(building)*
+3. **Box 3 — the pivot.** Sniffer cred-harvest (NIT/`solsniff`, cf 4015) and/or a
+   true multi-host pivot onto a trusted host. *(sketched)*
+4. **Box 4 — the foothold that stays.** Persistence / backdoors — trojan telnetd
+   (port 5553, `wank`), port-3111 shell, `.rhosts` drops (cf 4007/4008). *(sketched)*
+
+We **pause the series at Box 4** and reassess. There's no content ceiling — the
+TIMELINE's 27 sessions also hold the IP-spoofing / TCP-sequence attack, the
+cellular/firmware theft, the multi-site spree, and the trace-and-takedown — so the
+spine can extend if appetite and quality hold. See `docs/primer.md`,
+`docs/historicity.md`.
