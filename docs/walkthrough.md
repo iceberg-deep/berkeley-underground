@@ -110,11 +110,17 @@ cat maniac/flag.txt
 ## Flag
 
 ```
-BU{REDACTED-flag-is-derived-see-build-flag-sh}
+BU{<16 hex>_r5h_setu1d_newgrp_1995}
 ```
 
-(Also recoverable directly from `/usr/src/sys/maniac/maniac1.3.4.tar.gz` once
-root — but the intended objective is the off-box transfer, mirroring the case.)
+The flag is **per-instance and derived** — `BU{ md5(seed+instance) _ suffix }` —
+so the exact value depends on the seed the box was built with (the owner computes
+it with `build/flag.sh`). It is **not** stored as static text on the disk: a
+powered-off image carries only a decoy, and the real flag is materialised into a
+RAM filesystem at boot (`build/payloads/gen-flag.sh`); the qcow2 is also
+LUKS-encrypted. So you recover it by *solving the box* — root, then read/exfil
+`/usr/src/sys/maniac/flag.txt` (or the tarball) from the running machine. See
+`docs/owner-cheatsheet.md` for the flag/rotation mechanics.
 
 ## What each step taught
 

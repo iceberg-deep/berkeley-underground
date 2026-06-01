@@ -7,13 +7,21 @@
 set -eu
 . "$(dirname "$0")/lib.sh"
 
-[ -f "$IMAGE" ] || die "no box image $IMAGE (run: make build)"
 need "$QEMU_BIN"; need telnet
 
 PY="python3"; [ -x "$REPO_ROOT/.venv/bin/python3" ] && PY="$REPO_ROOT/.venv/bin/python3"
 "$PY" -c 'import pexpect' 2>/dev/null || die "pexpect missing (run: make deps)"
 
-export BOX_IMAGE_ABS="$IMAGE"
+# Prefer the LUKS-encrypted distributable (proves the SHIPPED box solves); else plaintext.
+if [ -f "$ENC_IMAGE" ] && KF=$(luks_keyfile 2>/dev/null); then
+  export BOX_IMAGE_ABS="$ENC_IMAGE" BOX_LUKS_KEYFILE_ABS="$KF"
+  log "solving the LUKS-encrypted image $BOX_ENC_IMAGE"
+elif [ -f "$IMAGE" ]; then
+  export BOX_IMAGE_ABS="$IMAGE"
+  log "solving the plaintext image $BOX_IMAGE"
+else
+  die "no box image (run: make build)"
+fi
 export QEMU_BIN BOX_MACHINE BOX_CPU BOX_MEM_MB
 export BOX_FWD_TELNET BOX_FWD_FTP BOX_FWD_SHELL
 export BOX_FOOTHOLD_USER BOX_FOOTHOLD_PASS BOX_TRUST_USER BOX_LOOT_DIR

@@ -138,5 +138,27 @@ else
 fi
 cp "$HERE/artifacts/EVIDENCE.md" "$LOOT_DIR/EVIDENCE.md" 2>/dev/null || true
 
+# ── off-disk flag: the on-disk loot above carries only the DECOY; the REAL flag
+# (derived off-box from the owner's secret seed) is stored OBFUSCATED in /etc/.fb
+# and materialised into a RAM filesystem at every boot by gen-flag.sh.  So a
+# powered-off / offline-mounted disk shows no real flag (and ciphertext once
+# LUKS-wrapped); the live flag exists only in memory on a running, rooted box.
+if [ -n "${FLAG_REAL:-}" ]; then
+  note "installing off-disk flag generator (real flag -> RAM at boot)"
+  # obfuscate the real flag (reversed; no literal BU{ to grep), root-only.
+  # echo+rev here and `rev` in gen-flag.sh both use the GUEST's rev -> consistent.
+  echo "$FLAG_REAL" | rev > /etc/.fb
+  test "`rev /etc/.fb`" = "$FLAG_REAL" || fail "flag obfuscation (rev) round-trip failed"
+  chown root:wheel /etc/.fb; chmod 600 /etc/.fb
+  cp "$HERE/gen-flag.sh" /usr/local/sbin/gen-flag.sh 2>/dev/null || \
+    { mkdir -p /usr/local/sbin && cp "$HERE/gen-flag.sh" /usr/local/sbin/gen-flag.sh; }
+  chown root:wheel /usr/local/sbin/gen-flag.sh; chmod 700 /usr/local/sbin/gen-flag.sh
+  # run it at every multiuser boot via /etc/rc.local (2.2.8 sources it late in rc)
+  [ -f /etc/rc.local ] || { echo '#!/bin/sh' > /etc/rc.local; chmod 755 /etc/rc.local; }
+  grep -q 'gen-flag.sh' /etc/rc.local || echo '/usr/local/sbin/gen-flag.sh' >> /etc/rc.local
+else
+  note "FLAG_REAL not provided; leaving the baked (decoy) loot as the flag"
+fi
+
 note "inject-guest complete"
 exit 0

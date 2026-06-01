@@ -16,10 +16,10 @@
 SHELL := /bin/sh
 B := build
 
-.PHONY: build deps fetch iso install inject theme run clean distclean verify help
+.PHONY: build dist-image deps fetch iso install inject theme luks solve run clean distclean verify help
 
 help:
-	@echo "Targets: deps fetch iso install inject theme  | build (all) | run | verify | clean | distclean"
+	@echo "Targets: deps fetch iso install inject theme luks  | build | dist-image | run | solve | verify | clean | distclean"
 
 deps:    ; $(B)/00-deps.sh
 fetch:   ; $(B)/10-fetch-media.sh
@@ -27,10 +27,16 @@ iso:     ; $(B)/20-make-iso.sh
 install: ; $(B)/30-install.sh
 inject:  ; $(B)/40-inject.sh
 theme:   ; $(B)/50-theme.sh
+luks:    ; $(B)/70-luks.sh
+solve:   ; $(B)/95-solve.sh
 
-# Full pipeline, in order.
+# Full pipeline, in order.  (luks is a separate packaging step — see 'dist'.)
 build: deps fetch iso install inject theme
 	@echo "=== build complete: dist/ ==="
+
+# Distributable: the full build, then wrap the disk in LUKS for shipping.
+dist-image: build luks
+	@echo "=== encrypted distributable ready: dist/ ==="
 
 # Boot the finished box (host-only). See run.sh.
 run:

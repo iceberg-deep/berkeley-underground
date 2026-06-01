@@ -40,8 +40,16 @@ def boot_box():
     hostfwd = (f"hostfwd=tcp:127.0.0.1:{TPORT}-:23,"
                f"hostfwd=tcp:127.0.0.1:{FPORT}-:21,"
                f"hostfwd=tcp:127.0.0.1:{SPORT}-:513")
+    # If a LUKS keyfile is supplied, the image is the encrypted distributable —
+    # attach the secret + encrypted drive (verifies the SHIPPED box still solves).
+    keyf = os.environ.get("BOX_LUKS_KEYFILE_ABS", "")
+    secret, drive = [], f"file={IMAGE},format=qcow2,if=ide,index=0,media=disk"
+    if keyf and os.path.exists(keyf):
+        secret = ["-object", f"secret,id=sec0,file={keyf}"]
+        drive += ",encrypt.key-secret=sec0"
+        log("(booting LUKS-encrypted image with key)")
     cmd = [QEMU, "-machine", f"{MACHINE},graphics=off", "-cpu", CPU, "-m", MEM,
-           "-drive", f"file={IMAGE},format=qcow2,if=ide,index=0,media=disk",
+           *secret, "-drive", drive,
            "-boot", "c", "-display", "none",
            "-serial", f"file:{SERLOG}", "-monitor", "none", "-no-reboot",
            "-netdev", f"user,id=n0,restrict=on,{hostfwd}",

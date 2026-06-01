@@ -34,7 +34,22 @@ MEDIA_DIR="$REPO_ROOT/$BOX_MEDIA_DIR"
 DIST_DIR="$REPO_ROOT/$BOX_DIST_DIR"
 WORK_DIR="$REPO_ROOT/$BOX_WORK_DIR"
 IMAGE="$REPO_ROOT/$BOX_IMAGE"
+ENC_IMAGE="$REPO_ROOT/${BOX_ENC_IMAGE:-dist/box1-enc.qcow2}"
+LUKS_KEYFILE="$REPO_ROOT/${BOX_LUKS_KEYFILE:-secret/luks.key}"
 PAYLOAD_DIR="$REPO_ROOT/build/payloads"
+
+# Resolve the LUKS key: $BOX_LUKS_KEY env wins, else the keyfile.  Writes the key
+# to a 0600 temp file and echoes its path (QEMU's secret object reads from a file).
+luks_keyfile() {
+  if [ -n "${BOX_LUKS_KEY:-}" ]; then
+    _kf="$WORK_DIR/.luks.key"; mkdir -p "$WORK_DIR"
+    printf '%s' "$BOX_LUKS_KEY" > "$_kf"; chmod 600 "$_kf"; printf '%s\n' "$_kf"
+  elif [ -f "$LUKS_KEYFILE" ]; then
+    printf '%s\n' "$LUKS_KEYFILE"
+  else
+    return 1
+  fi
+}
 
 mkdirs() { mkdir -p "$MEDIA_DIR" "$DIST_DIR" "$WORK_DIR"; }
 

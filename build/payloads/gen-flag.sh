@@ -1,54 +1,63 @@
 #!/bin/sh
-# gen-flag.sh -- regenerate the per-instance flag and the loot tarball at boot.
+# gen-flag.sh -- materialise the real flag into a MEMORY filesystem at every boot.
 #
-# Runs INSIDE the guest (installed by build/40-inject.sh; invoked from /etc/rc.local
-# every boot, and once during inject).  The flag is DERIVED from a secret seed, so
-# the disk image never stores a literal flag -- `grep -r 'BU{'` on a never-booted
-# image finds only the decoy baked into the build-time tarball.  Deterministic, so
-# build/flag.sh on the host computes the same value (the owner's copy).
-#
-#     token = first 16 hex of md5( seed )        flag = BU{ token _ suffix }
-#
+# Runs INSIDE the guest as root, from /etc/rc.local (every boot).  The persistent
+# disk holds only a DECOY flag (in the on-disk loot) plus an OBFUSCATED copy of the
+# real flag in /etc/.fb (root-only, reversed -- no literal "BU{" to grep).  At boot
+# we mount a small MFS (RAM, swap-backed) OVER the loot directory and rebuild the
+# loot there with the real flag -- so:
+#   * a powered-off / offline-mounted disk shows only the decoy (and ciphertext
+#     once LUKS-wrapped);
+#   * the real flag exists only in RAM on a running, rooted box.
 # POSIX/ash (2.2.8 /bin/sh).
-CONF=/etc/flag.conf
-[ -r "$CONF" ] || exit 0
-. "$CONF"
+LOOT=/usr/src/sys/maniac
+NAME=maniac1.3.4.tar.gz
+BLOB=/etc/.fb
+SWAP=/dev/wd0s1b          # swap partition, MFS backing store
+[ -r "$BLOB" ] || exit 0
+[ -d "$LOOT" ] || exit 0
 
-# BSD md5 reads stdin and prints just the hash; awk $NF also copes with the
-# "MD5 (stdin) = <hash>" form, and printf avoids echo -n portability snags.
-TOKEN=`printf '%s' "$FLAG_SEED" | md5 2>/dev/null | awk '{print $NF}' | cut -c1-16`
-[ -n "$TOKEN" ] || exit 0
-FLAG="BU{${TOKEN}_${FLAG_SUFFIX}}"
+# de-obfuscate the real flag (stored reversed)
+FLAG=`rev "$BLOB" 2>/dev/null`
+case "$FLAG" in BU\{*\}) : ;; *) exit 0 ;; esac   # sanity: looks like a flag
 
-DIR="$LOOT_DIR"
-[ -d "$DIR" ] || exit 0
+# stash the on-disk loot SOURCES (not the decoy flag) before we hide them with MFS
+STAGE=/tmp/.lootstage.$$
+rm -rf "$STAGE"; mkdir -p "$STAGE"
+for f in acl.c maniac.c maniac.h access Makefile README EVIDENCE.md; do
+  [ -f "$LOOT/$f" ] && cp "$LOOT/$f" "$STAGE/$f"
+done
 
-# 1) the trophy file inside the loot source tree
-cat > "$DIR/flag.txt" <<EOF
+# overlay a memory filesystem on the loot dir (hides the persistent decoy)
+/sbin/umount "$LOOT" 2>/dev/null
+if ! /sbin/mount_mfs -s 4096 "$SWAP" "$LOOT" 2>/dev/null; then
+  rm -rf "$STAGE"; exit 0     # no MFS -> leave the (decoy) on-disk loot as-is
+fi
+mkdir -p "$LOOT"
+cp "$STAGE"/* "$LOOT/" 2>/dev/null
+rm -rf "$STAGE"
+
+# write the real trophy + rebuild the exfil tarball, all in RAM
+cat > "$LOOT/flag.txt" <<EOF
 Berkeley Underground -- Box 1 "gaia"
 
 You rooted gaia, found the planted MANIAC firewall source, and pulled it off the
-box -- exactly the objective of the Feb 1995 Motorola theft (cf. ~/takedown
-TIMELINE sessions 4014 and 4017).
+box -- exactly the Feb 1995 Motorola theft (cf. ~/takedown TIMELINE 4014 / 4017).
 
 FLAG: $FLAG
 
-How you proved it: this archive is now on a host you control.  No service on the
-box had to "detect" anything -- possession after transfer is the proof.
+Possession after transfer is the proof.  This file lives only in RAM on a running
+box; the powered-off disk carries a decoy.
 EOF
-
-# 2) rebuild the exfil tarball so the flag INSIDE it is the live one
-TMP=/tmp/.maniacgen.$$
+TMP=/tmp/.mgen.$$
 rm -rf "$TMP"; mkdir -p "$TMP/maniac"
 for f in acl.c maniac.c maniac.h access Makefile README flag.txt; do
-  [ -f "$DIR/$f" ] && cp "$DIR/$f" "$TMP/maniac/$f"
+  [ -f "$LOOT/$f" ] && cp "$LOOT/$f" "$TMP/maniac/$f"
 done
-( cd "$TMP" && tar cf - maniac | gzip -9 > "$DIR/$LOOT_NAME" )
+( cd "$TMP" && tar cf - maniac | gzip -9 > "$LOOT/$NAME" )
 rm -rf "$TMP"
-chown -R root "$DIR" 2>/dev/null
-chmod -R go-w "$DIR" 2>/dev/null
-
-# 3) owner's reference copy, root-only
-echo "$FLAG" > /root/flag.txt
-chmod 600 /root/flag.txt
+chown -R root "$LOOT" 2>/dev/null
+chmod -R go-w "$LOOT" 2>/dev/null
+# owner-readable live flag for convenience (root-only, in RAM too if /root is mfs?
+# no -- /root is on disk, so keep this OUT of persistent disk):
 exit 0

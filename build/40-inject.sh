@@ -15,9 +15,12 @@ STAGE="$WORK_DIR/inject-stage"
 TAR="$WORK_DIR/inject-payload.tar"
 rm -rf "$STAGE"; mkdir -p "$STAGE/files" "$STAGE/artifacts" "$STAGE/loot"
 
-# ── build the loot tarball (flag inside) ───────────────────────────────────────
-log "building loot tarball"
-sh "$PAYLOAD_DIR/loot/build-loot.sh"
+# ── loot: a DECOY flag is baked into the on-disk tarball; the REAL flag is
+# derived off-box (from your secret seed) and materialised into RAM at boot
+# (build/payloads/gen-flag.sh) — so a powered-off disk carries only the decoy.
+log "building loot tarball (decoy on disk; real flag off-box)"
+REAL_FLAG=$(sh "$REPO_ROOT/build/flag.sh") || die "could not derive flag (set BOX_FLAG_SEED or secret/flag.seed)"
+LOOT_FLAG="$BOX_FLAG_DECOY" sh "$PAYLOAD_DIR/loot/build-loot.sh"
 cp "$PAYLOAD_DIR/loot/$BOX_LOOT_NAME" "$STAGE/loot/$BOX_LOOT_NAME"
 
 # ── password hashes (MD5 crypt; 2.2.8 understands $1$) ─────────────────────────
@@ -44,10 +47,12 @@ HOSTNAME_FQDN="$BOX_HOSTNAME.$BOX_DOMAIN"
 GUEST_IFACE="ed1"
 GUEST_IP="10.0.2.15"
 GUEST_GW="10.0.2.2"
+FLAG_REAL='$REAL_FLAG'
 EOF
 
 # ── stage payload files + the guest script as RUN.sh ───────────────────────────
 cp "$PAYLOAD_DIR/inject-guest.sh"        "$STAGE/RUN.sh"
+cp "$PAYLOAD_DIR/gen-flag.sh"            "$STAGE/gen-flag.sh"
 cp "$PAYLOAD_DIR/files/pei.bash_history" "$STAGE/files/"
 cp "$PAYLOAD_DIR/files/handover.txt"     "$STAGE/files/"
 cp "$PAYLOAD_DIR/files/rhosts"           "$STAGE/files/"
