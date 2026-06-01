@@ -87,6 +87,17 @@ proot can't mount) → all guest planting goes through the **tar-on-raw-disk cha
   silently.
 - Upstream archive TLS SAN is broken → fetch over **plain http://** from
   `ftp-archive.freebsd.org`; verify against per-set `CHECKSUM.MD5`.
+- **No live packet sniffing — the 2.2.8 GENERIC kernel has no BPF.** `tcpdump` ships
+  (`/usr/sbin/tcpdump`) and `/dev/bpf0` exists, but opening it returns `Device not
+  configured` (ENXIO): the Minimal-install GENERIC kernel was built without
+  `pseudo-device bpfilter`. There is no runtime fix (no loadable bpf module in
+  2.2.8); enabling it needs a full kernel recompile (src dist + hours under TCG).
+  Also note: under QEMU host-only user-net there's only one NAT'd interface and no
+  shared segment, and self-traffic to the box's own IP routes via lo0 — so even
+  with BPF you'd only see loopback. **Lesson:** a sniffer-themed box must use a
+  *found capture log* (faithful — the case evidence was "modified-tcpdump logs"),
+  not live capture. (`tcpdump -s 0` is also invalid on this old tcpdump — use a
+  real snaplen like `-s 1514`; it likely lacks `-A`, so read pcaps with `strings`.)
 - `mount_mfs` against the **active swap** device can transiently report "mfs
   filesystem not available" early in boot → **retry** the mount (gen-flag /
   tripwire both do). The console warning is harmless once the retry takes.
