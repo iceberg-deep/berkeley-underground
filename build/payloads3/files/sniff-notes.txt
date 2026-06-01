@@ -1,0 +1,16 @@
+notes -- clean before logoff (you never do)
+
+* sunsniffer was running on the segment for a week.  its capture is in
+      ~/.sunsniff.log
+  telnet/ftp/pop are all cleartext here, so it caught logins + passwords.
+
+* the one that matters: the operator `ops` does an ftp backup run -- its PASS is
+  right there in the log.  and the lazy admin REUSES it: same word unlocks root.
+      su ops      (the sniffed password)
+      su          (root -- ops is in wheel; same password)
+
+* source is here (sunsniffer.c) if you want to recompile, but the live sniff
+  needs the old shared-ethernet segment -- this box is switched/!nit now, so just
+  read the capture above.
+
+* don't leave a trace -- `last`/billing get reviewed (that's the NEXT box's lesson).
