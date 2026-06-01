@@ -67,6 +67,19 @@ boot-gate it.
 Determinism: flag = `BU{ md5(seed+instance)[:16] _ suffix }` (shared `build/flag.sh`,
 new `BOX_FLAG_INSTANCE`/`BOX_FLAG_SUFFIX`). Seed stays owner-side; never in image.
 
+### Trace generation (how the logs get "dirty")
+
+Most of the trace needs **no pre-planting** — the player's own foothold login as
+`brian` over telnet is what writes the `wtmp` / `utmp` / `lastlog` entries the
+watcher hunts. The player must erase their *own live* session (the hard, authentic
+part) with `zap`. Only the **accounting log** (`/var/account/awtmp`) is
+pre-planted at inject time (plain-text billing lines naming `brian` from `gaia`),
+because that's the separate `grep -v` scrub the 1995 sessions did by hand
+(4005/4007). So the watcher's username signature is the spine; `BOX_INTRUDER_SRCHOST`
+seasons the planted accounting log (and, if we later add a `plant` tool, a backstory
+`wtmp` record). `zap` zeroes records in place (keeps file length) so it survives the
+anti-cheese; `rm`/truncate does not.
+
 ### Anti-cheese
 
 - Trip-wire keys on **specific** intruder entries, not "is wtmp smaller" — so
