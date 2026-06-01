@@ -31,7 +31,31 @@ emits a runnable, **host-only** virtual machine plus a launch script.
 
 ---
 
-## ⚠️ Box 1 — "gaia" (status: building)
+## The series — a 4-box spine
+
+Four boxes, each teaching **one** distinct technique from the Feb 1995 sessions,
+each a self-contained **host-only boot2root VM**. Boxes 1–3 are built and
+**ship-tested end-to-end**; Box 4 is in progress.
+
+| # | Box | Teaches | Grounded in | Status |
+|---|-----|---------|-------------|--------|
+| **1** | `gaia` — the break-in | r-services trust (`.rhosts "+ +"`) + setuid `newgrp` → source exfil | 4003 / 4007 / 4014 | ✅ built + ship-tested |
+| **2** | `teal` — *The Traced Call* | **anti-forensics**: scrub `wtmp`/`utmp`/`lastlog` + accounting logs to release the flag | 4005 / 4016 | ✅ built + ship-tested |
+| **3** | `escape` — the pivot | **credential harvest + reuse**: read the intruder's sniffer log, reuse the admin's password → root | 4015 / 4019 | ✅ built + ship-tested |
+| **4** | `well` — the backdoor | **persistence**: find the intruder's `in.pmd` inetd backdoor and knock → root | 4007 / 4008 | 🔨 building |
+
+Every box after the first **clones the proven Box 1 base image** (no reinstall) and
+is built / solved / packaged through the same parameterised pipeline. Per-box flags
+are derived from a secret seed and **materialised in RAM** (no plaintext flag on
+disk); each distributable is **LUKS-encrypted at rest**. Design docs:
+[`docs/box2-design.md`](docs/box2-design.md),
+[`box3-design.md`](docs/box3-design.md), [`box4-design.md`](docs/box4-design.md);
+build them with `make box2-dist` / `box3-dist` / `box4-dist`, and prove a shipped
+bundle solves on a clean host with `make box2-shiptest` (etc.).
+
+---
+
+## Box 1 — "gaia": the break-in  ✅ built + ship-tested
 
 | | |
 |---|---|
@@ -122,27 +146,35 @@ See [`docs/field-manual.md`](docs/field-manual.md) for the operator's guide
 
 Modern security training drills modern bugs. This series fills a gap: the
 *foundational* UNIX attack techniques — trust relationships, setuid, plaintext
-r-services, log tampering, source exfiltration — that defined an era and still
-underpin how we reason about lateral movement and privilege escalation today.
-Box 1 teaches them on hardware-honest period software, grounded in real forensic
-evidence rather than invented lore.
+r-services, **credential sniffing + reuse, log tampering / anti-forensics, and
+persistence backdoors** — that defined an era and still underpin how we reason
+about lateral movement and privilege escalation today. The 4-box spine teaches them
+one technique at a time, on hardware-honest period software, grounded in real
+forensic evidence rather than invented lore.
 
 ## Safety & ethics
 
-This is a **vulnerable-by-design lab, never hostile-by-design.** It runs
-host-only, ships no real credentials or keys, and the period "backdoors" from
-the lore are reproduced as **inert, discoverable artifacts to analyze — not live
-listening services.** Full safety model: [`docs/historicity.md`](docs/historicity.md)
-§ Safety. Provenance & licensing: [`PROVENANCE.md`](PROVENANCE.md).
+This is a **vulnerable-by-design lab, never hostile-by-design.** Every box runs
+**host-only** (no route to the internet — `run.sh`/`play.sh` enforce it), ships only
+**throwaway lab passwords** (never real credentials or keys), and is reachable only
+from `127.0.0.1` on the machine you launch it on. The weaknesses are **real** — by
+Box 4 that includes a genuine live backdoor service — but they are *real and
+contained*: a vulnerable VM you own and control, exactly like any boot2root lab.
+Full safety model: [`docs/historicity.md`](docs/historicity.md) § Safety.
+Provenance & licensing: [`PROVENANCE.md`](PROVENANCE.md).
 
 ## Repository layout
 
 ```
-build/        the reproducible pipeline (fetch → install → inject → theme → emit)
-  payloads/   files planted into the image (vulns, breadcrumbs, loot, theme)
-config/       box parameters (OS version, sizes, hostname) — edit to retarget
-docs/         historicity (citations), field-manual, spoiler-gated walkthrough
-run.sh        launch the built box, host-only
-media/        downloaded BSD install media        (gitignored)
-dist/         the emitted runnable image + artifacts (gitignored)
+build/         the reproducible pipeline (fetch → install → inject → theme → emit)
+  payloads/    Box 1 planted files (vulns, breadcrumbs, loot, theme)
+  payloads2..4/ per-box planted files (each box's inject + solver payloads)
+  new-box.sh   scaffold a new box from templates/ (config + inject + stage)
+config/        box parameters — box.env (Box 1) + box2/box3/box4.env
+templates/     skeletons new-box.sh fills in for the next box
+docs/          historicity, primer, field-manual, build-notes (troubleshooting),
+               per-box design docs, spoiler-gated walkthrough
+run.sh         launch the built box, host-only
+media/         downloaded BSD install media          (gitignored)
+dist/          emitted images + release/ bundles + tarballs (gitignored)
 ```
