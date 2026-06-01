@@ -89,6 +89,14 @@ proot can't mount) → all guest planting goes through the **tar-on-raw-disk cha
   telnet's CR handling over the raw socket turns a bare `id\r` line into a
   `: not found` error, but a single combined line runs clean. Note the 2.2.8 base
   has **no `nc`** — telnet is the only knock client.
+  (3) An inetd backdoor that `read()`s a buffer and scans for a trigger must
+  consume **exactly the trigger line** (read byte-by-byte up to `\n`, stop), then
+  `execl` the shell. A buffered `read(fd, buf, BIG)` swallows a *variable* amount
+  of the follow-on commands depending on TCP packet boundaries — so `id; cat flag`
+  sometimes loses its first chars and fails non-deterministically (the symptom that
+  looked like a flaky flag: `cat: ... No such file`, `id: not found`, working only
+  by luck). Leaving the post-trigger bytes in the socket lets the exec'd shell read
+  them intact.
 - Network knobs belong in **`/etc/rc.conf.local`** (sourced last by `/etc/rc.conf`),
   not `/etc/rc.conf` (defaults there are set earlier and win).
 - **A persistent background loop does NOT survive `/etc/rc.local`.** `rc` SIGHUPs

