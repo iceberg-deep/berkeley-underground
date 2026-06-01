@@ -13,8 +13,10 @@ if [ -z "${REPO_ROOT:-}" ]; then
 fi
 export REPO_ROOT
 
-# Load box parameters.
-. "$REPO_ROOT/config/box.env"
+# Load box parameters.  BOX_ENV_FILE selects the box (default box.env = Box 1);
+# build/40-inject2.sh etc. set BOX_ENV_FILE=box2.env to build Box 2 on the same
+# library.
+. "$REPO_ROOT/config/${BOX_ENV_FILE:-box.env}"
 
 # ── logging ────────────────────────────────────────────────────────────────
 _ts() { date '+%H:%M:%S'; }
@@ -36,7 +38,7 @@ WORK_DIR="$REPO_ROOT/$BOX_WORK_DIR"
 IMAGE="$REPO_ROOT/$BOX_IMAGE"
 ENC_IMAGE="$REPO_ROOT/${BOX_ENC_IMAGE:-dist/box1-enc.qcow2}"
 LUKS_KEYFILE="$REPO_ROOT/${BOX_LUKS_KEYFILE:-secret/luks.key}"
-PAYLOAD_DIR="$REPO_ROOT/build/payloads"
+PAYLOAD_DIR="$REPO_ROOT/build/${BOX_PAYLOAD_SUBDIR:-payloads}"
 
 # Resolve the LUKS key: $BOX_LUKS_KEY env wins, else the keyfile.  Writes the key
 # to a 0600 temp file and echoes its path (QEMU's secret object reads from a file).

