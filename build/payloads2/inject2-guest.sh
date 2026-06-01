@@ -97,12 +97,12 @@ printf 'The sysadmin reviews `last` and the billing logs.\nYour session is still
   "$FLAG_DECOY" > "$LOOT_DIR/trophy.txt"
 chmod 600 "$LOOT_DIR/trophy.txt"
 
-# launch the watcher loop at every multiuser boot via /etc/rc.local
-[ -f /etc/rc.local ] || { echo '#!/bin/sh' > /etc/rc.local; chmod 755 /etc/rc.local; }
-if ! grep -q 'tripwire.sh' /etc/rc.local; then
-  cat >> /etc/rc.local <<EOF
-( while : ; do /usr/local/sbin/tripwire.sh "$FOOTHOLD_USER" "$INTRUDER_SRCHOST" ; sleep $WATCH_INTERVAL ; done ) &
-EOF
+# run the watcher every minute via CRON.  NOT a backgrounded rc.local loop: rc
+# SIGHUPs its backgrounded children when it exits, so a persistent `( while…;
+# sleep; done ) &` dies (a one-shot like Box 1's gen-flag survives only because it
+# finishes before rc exits).  cron is a standard daemon and is the right tool.
+if ! grep -q 'tripwire.sh' /etc/crontab; then
+  echo "* * * * * root /usr/local/sbin/tripwire.sh $FOOTHOLD_USER $INTRUDER_SRCHOST" >> /etc/crontab
 fi
 
 note "inject2-guest complete"

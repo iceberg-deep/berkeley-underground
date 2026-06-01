@@ -12,6 +12,8 @@
 # "BU{" to grep), exactly like Box 1's gen-flag.sh; we reuse that MFS machinery.
 # POSIX/ash (2.2.8 /bin/sh).
 
+PATH=/bin:/usr/bin:/sbin:/usr/sbin; export PATH   # cron runs with a minimal PATH
+
 INTRUDER="${1:-brian}"          # foothold user whose records betray the break-in
 SRCHOST="${2:-gaia}"            # planted source host in the records (extra signature)
 

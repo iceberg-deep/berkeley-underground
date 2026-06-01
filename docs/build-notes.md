@@ -69,6 +69,15 @@ proot can't mount) → all guest planting goes through the **tar-on-raw-disk cha
   `stty -echo` and `PS1='…'` into separate sends).
 - Network knobs belong in **`/etc/rc.conf.local`** (sourced last by `/etc/rc.conf`),
   not `/etc/rc.conf` (defaults there are set earlier and win).
+- **A persistent background loop does NOT survive `/etc/rc.local`.** `rc` SIGHUPs
+  its backgrounded children when it exits, so `( while :; do …; sleep N; done ) &`
+  from rc.local dies immediately (symptom: the watcher never runs, no log, the
+  pre-seeded decoy persists forever). A **one-shot** (Box 1's `gen-flag.sh`)
+  survives because it finishes before `rc` exits. For a periodic task use **cron**
+  (a standard daemon): `* * * * * root /usr/local/sbin/watcher.sh args` in
+  `/etc/crontab`. Cron runs with a **minimal PATH** — set `PATH=/bin:/usr/bin:/sbin:
+  /usr/sbin` at the top of the script, or its `last`/`who`/`mount_mfs` calls fail
+  silently.
 - Upstream archive TLS SAN is broken → fetch over **plain http://** from
   `ftp-archive.freebsd.org`; verify against per-set `CHECKSUM.MD5`.
 - `mount_mfs` against the **active swap** device can transiently report "mfs
