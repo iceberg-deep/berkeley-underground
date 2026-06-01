@@ -37,17 +37,15 @@ chmod 700 "$LOOT" 2>/dev/null
 # ---- decide: is the intruder still visible in the logs? ----------------------
 traces=0; why=""
 
-# wtmp (login history) via last(1)
-if last "$INTRUDER" 2>/dev/null | grep -q "$INTRUDER"; then traces=1; why="$why wtmp:$INTRUDER"; fi
-if last 2>/dev/null | grep -q "$SRCHOST"; then traces=1; why="$why wtmp:$SRCHOST"; fi
+# wtmp (login history) via last(1) — the intruder's own sessions
+if last "$INTRUDER" 2>/dev/null | grep -q "$INTRUDER"; then traces=1; why="$why wtmp"; fi
 # utmp (who is on now) via who(1)
-if who 2>/dev/null | grep -q "$INTRUDER"; then traces=1; why="$why utmp:$INTRUDER"; fi
-# lastlog (last login per user) via lastlogin(1) where present
-if command -v lastlogin >/dev/null 2>&1; then
-  lastlogin "$INTRUDER" 2>/dev/null | grep -q "$INTRUDER" && { traces=1; why="$why lastlog"; }
-fi
+if who 2>/dev/null | grep -q "$INTRUDER"; then traces=1; why="$why utmp"; fi
 # accounting/billing log (plain text we planted) via grep
 if [ -f "$ACCT" ] && grep -q "$INTRUDER" "$ACCT" 2>/dev/null; then traces=1; why="$why acct"; fi
+# NOTE: no lastlog gate — lastlogin(1) prints the username even for a zeroed
+# record, so it can't tell clean from dirty.  zap.c still clears lastlog; the
+# decoy message still tells the player to, but the watcher keys on wtmp/utmp/acct.
 
 # ---- anti-cheese: deleting/zeroing the logs is itself a red flag -------------
 # (the historically-correct move is surgical editing with zap/cloak, not rm).

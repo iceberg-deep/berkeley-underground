@@ -163,3 +163,10 @@ snapshot (`dist/box1-gaia.built.qcow2`) and restore it before each guest run.
     then `Password:` for a bogus user; serial getty still works because getty
     passes no `-h`). Fix: skip `-h`/`-f` **and the argument that follows them**.
     Always solve-test the foothold *through telnet*, not just the serial console.
+- **Log-condition gating — don't verify lastlog with `lastlogin`.** `lastlogin
+  <user>` prints the username in its output *even for a zeroed/never record*, so a
+  `lastlogin user | grep -q user` "is the trace gone?" check is **always true** and
+  the gate never opens (symptom: solve scrubs everything — last/who/acct all 0 —
+  but the watcher keeps serving the decoy). Gate on `last`/`who`/the accounting log
+  (username-based, reliable). Make the gating script **log its `why`** so a stuck
+  gate is one `cat /root/.tripwire.log` away.

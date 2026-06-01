@@ -161,7 +161,12 @@ def main():
             log("attempt %d: watcher still showing decoy — waiting for the sweep..." % (attempt + 1))
             time.sleep(INTERVAL // 2 + 3)
         if not flag:
-            log("FLAG FAILED: watcher never released the real flag (logs not clean?)"); return 6
+            log("FLAG FAILED: watcher never released the real flag (logs not clean?)")
+            tw = root("cat /root/.tripwire.log 2>/dev/null | tail -6")
+            for ln in tw.splitlines():
+                if ln.strip() and "X_" not in ln:
+                    log("tripwire.log: %s" % ln.strip())
+            return 6
         log("flag recovered: %s" % flag)
         # capture the genflag/tripwire trace for the record
         tr = root("cat /root/.tripwire.log 2>/dev/null | tail -3")
