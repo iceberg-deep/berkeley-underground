@@ -34,8 +34,9 @@ export BOX_NO_BOOT=1
 export QEMU_BIN BOX_MACHINE BOX_CPU BOX_MEM_MB
 export BOX_FWD_TELNET BOX_FWD_FTP BOX_FWD_SHELL
 export BOX_FOOTHOLD_USER BOX_FOOTHOLD_PASS BOX_TRUST_USER BOX_LOOT_DIR BOX_FLAG_DECOY
-# Box 2+ solver vars (empty/harmless for Box 1):
+# Box 2+ solver vars (empty/harmless for earlier boxes):
 export BOX_LOGIN_MAGIC="${BOX_LOGIN_MAGIC:-}" BOX_ACCT_LOG="${BOX_ACCT_LOG:-}" BOX_WATCH_INTERVAL="${BOX_WATCH_INTERVAL:-}"
+export BOX_OPS_USER="${BOX_OPS_USER:-}" BOX_OPS_PASS="${BOX_OPS_PASS:-}" BOX_SNIFFLOG="${BOX_SNIFFLOG:-}" BOX_LOOT_NAME="${BOX_LOOT_NAME:-}"
 export BOX_IMAGE_ABS="$B/${BOX_BASENAME}.enc.qcow2"   # for reap-key basename only
 export BOX_SOLVE_SERIAL="$WORK_DIR/${BOX_BASENAME}-shiptest-serial.log"
 export BOX_EXPECT_FLAG="$(sh "$REPO_ROOT/build/flag.sh" 2>/dev/null || true)"

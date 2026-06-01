@@ -17,7 +17,8 @@ SHELL := /bin/sh
 B := build
 
 .PHONY: build dist-image deps fetch iso install inject theme luks solve package shiptest run clean distclean verify help \
-        box2 box2-luks box2-package box2-solve box2-shiptest box2-dist
+        box2 box2-luks box2-package box2-solve box2-shiptest box2-dist \
+        box3 box3-luks box3-package box3-solve box3-shiptest box3-dist
 
 help:
 	@echo "Targets: deps fetch iso install inject theme luks package | build | dist-image | run | solve | verify | clean | distclean"
@@ -41,6 +42,15 @@ box2-solve:    ; $(B)/95-solve2.sh
 box2-shiptest: ; BOX_ENV_FILE=box2.env BOX_SOLVE_DRIVER=drive_solve2.py $(B)/98-shiptest.sh
 box2-dist: box2 box2-luks box2-package
 	@echo "=== Box 2 release bundle ready: dist/release/box2-teal/ ==="
+
+# ── Box 3 "the pivot" ──────────────────────────────────────────────────────────
+box3:          ; $(B)/40-inject3.sh
+box3-luks:     ; BOX_ENV_FILE=box3.env $(B)/70-luks.sh
+box3-package:  ; BOX_ENV_FILE=box3.env BOX_README=mk-player-readme3.sh $(B)/99-package.sh
+box3-solve:    ; $(B)/95-solve3.sh
+box3-shiptest: ; BOX_ENV_FILE=box3.env BOX_SOLVE_DRIVER=drive_solve3.py $(B)/98-shiptest.sh
+box3-dist: box3 box3-luks box3-package
+	@echo "=== Box 3 release bundle ready: dist/release/box3-escape/ ==="
 
 # Full pipeline, in order.  (luks is a separate packaging step — see 'dist'.)
 build: deps fetch iso install inject theme
