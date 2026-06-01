@@ -1,7 +1,19 @@
-SunOS Release 4.1.4 (GAIA) #2: Fri Oct 14 1994
 
-  gaia.internex.net  --  Internex Online, Inc.   Sun-4/SPARC
+SunOS Release 4.1.4 (GAIA)   #2: Fri Oct 14 11:42:55 PDT 1994
 
-  Authorized use only.  Activity may be monitored and reported.
+      Internex Online, Inc.  --  gaia.internex.net
+      Sun 4/470  (Sun-4/SPARC)  --  SunOS 4.1.4  --  32 MB
 
-  [ Systems: pei.  Trouble: x2317.  Do NOT modify /usr/src/sys -- migration. ]
+  Authorized use only.  All activity may be monitored and reported to the
+  appropriate authorities.   Trouble?  Systems: pei  (x2317).
+
+      >>>  Do NOT modify anything under /usr/src/sys  --  migration in   <<<
+      >>>  progress; dono owns that work until the Motorola job ships.   <<<
+
+  --------------------------------------------------------------------------
+   CTF disclosure (out of character):  this machine is actually FreeBSD 2.2.8
+   retrofitted to present as SunOS 4.1.4.  Genuine SunOS is not redistributable,
+   and a 4.3BSD-lineage cousin keeps the 1995-era r-services + setuid lessons
+   authentic.  `uname -a` tells the truth -- and every weakness on this box is
+   REAL, not staged.  Enumerate, pivot, escalate, exfiltrate.   -- BU staff
+  --------------------------------------------------------------------------

@@ -5,8 +5,12 @@
 set -eu
 
 # Resolve repo root regardless of CWD (this file lives in build/).
-LIB_DIR=$(cd "$(dirname "$0")" && pwd)
-REPO_ROOT=$(cd "$LIB_DIR/.." && pwd)
+# Callers in build/ invoke as `sh build/NN.sh`, so $0's dir is build/.  A caller
+# elsewhere (e.g. run.sh at the repo root) can preset REPO_ROOT to skip this.
+if [ -z "${REPO_ROOT:-}" ]; then
+  LIB_DIR=$(cd "$(dirname "$0")" && pwd)
+  REPO_ROOT=$(cd "$LIB_DIR/.." && pwd)
+fi
 export REPO_ROOT
 
 # Load box parameters.

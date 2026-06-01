@@ -7,9 +7,22 @@
 > Kevin Mitnick intrusion sessions.
 >
 > Every vulnerability here is **real and unmodified**. You are not solving a
-> puzzle box; you are walking the same path an intruder walked in 1995, on an
-> operating system close enough to the originals that the techniques transfer
-> verbatim.
+> puzzle box; you are using the same techniques an intruder used in 1995, on an
+> operating system close enough to the originals that they transfer verbatim.
+
+**Honest framing (read before you boot).** The *techniques* here are real and drawn
+from the 1995 sessions, but the *path* is distilled — a single signposted host, not
+the dozens-of-systems, days-long, social-engineering-driven intrusion the originals
+were. Treat this as an authentic introduction to the era's trust-model tradecraft,
+not a reenactment; what's stripped here — multi-host pivoting, anti-forensics, and
+the human layer that made Mitnick *Mitnick* — is documented in
+[`docs/historicity.md`](docs/historicity.md) and restored by later boxes one rung at
+a time.
+
+> 📜 **Read before you boot:** [`docs/primer.md`](docs/primer.md) — *Ghosts in the
+> Wires*, a historical primer on the February 1995 sessions this box distills, the
+> human layer the evidence can't show, and the still-contested story of the man at
+> the centre of it. *In memory of Kevin Mitnick (1963–2023).*
 
 This repository is the **build pipeline** for the series. It downloads a
 legally-redistributable BSD, installs it under QEMU, injects period-authentic
