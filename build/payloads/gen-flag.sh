@@ -14,12 +14,15 @@ LOOT=/usr/src/sys/maniac
 NAME=maniac1.3.4.tar.gz
 BLOB=/etc/.fb
 SWAP=/dev/wd0s1b          # swap partition, MFS backing store
-[ -r "$BLOB" ] || exit 0
-[ -d "$LOOT" ] || exit 0
+LOG=/root/.genflag.log    # owner-readable trace (root-only)
+glog() { echo "`date '+%H:%M:%S'` $*" >> "$LOG" 2>/dev/null; }
+: > "$LOG" 2>/dev/null; chmod 600 "$LOG" 2>/dev/null
+[ -r "$BLOB" ] || { glog "no /etc/.fb blob; abort"; exit 0; }
+[ -d "$LOOT" ] || { glog "no loot dir; abort"; exit 0; }
 
 # de-obfuscate the real flag (stored reversed)
 FLAG=`rev "$BLOB" 2>/dev/null`
-case "$FLAG" in BU\{*\}) : ;; *) exit 0 ;; esac   # sanity: looks like a flag
+case "$FLAG" in BU\{*\}) : ;; *) glog "deobfuscated value not a flag; abort"; exit 0 ;; esac
 
 # stash the on-disk loot SOURCES (not the decoy flag) before we hide them with MFS
 STAGE=/tmp/.lootstage.$$
@@ -28,11 +31,20 @@ for f in acl.c maniac.c maniac.h access Makefile README EVIDENCE.md; do
   [ -f "$LOOT/$f" ] && cp "$LOOT/$f" "$STAGE/$f"
 done
 
-# overlay a memory filesystem on the loot dir (hides the persistent decoy)
+# overlay a memory filesystem on the loot dir (hides the persistent decoy).
+# mount_mfs against the active swap can transiently report "not available" early
+# in boot, so retry a few times.
 /sbin/umount "$LOOT" 2>/dev/null
-if ! /sbin/mount_mfs -s 4096 "$SWAP" "$LOOT" 2>/dev/null; then
-  rm -rf "$STAGE"; exit 0     # no MFS -> leave the (decoy) on-disk loot as-is
+i=0; mounted=no
+while [ $i -lt 8 ]; do
+  if /sbin/mount_mfs -s 4096 "$SWAP" "$LOOT" 2>>"$LOG"; then mounted=yes; break; fi
+  i=`expr $i + 1`; glog "mount_mfs try $i failed; retrying"; sleep 2
+done
+if [ "$mounted" != yes ]; then
+  glog "mount_mfs FAILED after retries; loot stays as on-disk DECOY (box still boots)"
+  rm -rf "$STAGE"; exit 0
 fi
+glog "MFS overlay mounted on $LOOT"
 mkdir -p "$LOOT"
 cp "$STAGE"/* "$LOOT/" 2>/dev/null
 rm -rf "$STAGE"

