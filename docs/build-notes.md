@@ -81,6 +81,14 @@ proot can't mount) → all guest planting goes through the **tar-on-raw-disk cha
   the echoed command text is mistaken for command output (false success). When
   setting a prompt, the **PS1 string must not appear in an echoed command** (split
   `stty -echo` and `PS1='…'` into separate sends).
+- **Driving a raw service through `telnet` (e.g. an inetd backdoor):** two gotchas.
+  (1) `telnet` prepends **IAC option-negotiation bytes**, so a daemon doing
+  `fgets`+`strcmp(MAGIC)` never matches — read raw and `memcmp`-scan for the magic
+  word anywhere (NUL-tolerant). (2) After the trigger, send the commands as **one
+  semicolon-separated line** (`echo 'id; cat flag'`), not separate `echo` lines:
+  telnet's CR handling over the raw socket turns a bare `id\r` line into a
+  `: not found` error, but a single combined line runs clean. Note the 2.2.8 base
+  has **no `nc`** — telnet is the only knock client.
 - Network knobs belong in **`/etc/rc.conf.local`** (sourced last by `/etc/rc.conf`),
   not `/etc/rc.conf` (defaults there are set earlier and win).
 - **A persistent background loop does NOT survive `/etc/rc.local`.** `rc` SIGHUPs

