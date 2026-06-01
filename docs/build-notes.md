@@ -70,6 +70,13 @@ proot can't mount) → all guest planting goes through the **tar-on-raw-disk cha
   instead of `|| ! grep`. `[ ! -f x ]` (test's own negation) is fine — that's
   `test`, not the shell. Lint guest scripts: `grep -nE '\|\| *!|&& *!'`. Host **py3.13 dropped `crypt`** → make `$1$` MD5 password hashes
   with `openssl passwd -1` on the host.
+- **root's login shell is `/bin/csh`** (FreeBSD default), not sh. A sentinel helper
+  built on `echo X_$?_X` silently breaks after `su` to root — csh has no `$?` (it's
+  `$status`), so the marker never matches and the driver times out *after* a
+  confirmed uid=0 (a plain `echo MARKER` still works, which is why the uid check
+  passes but the next command hangs). After `su`/`su root`, send `/bin/sh` to drop
+  into sh before using `$?`-based sentinels. (ops/brian shells were set to /bin/sh,
+  so only the root level bit.)
 - Drivers must **`stty -echo` + use unique markers** (`echo XDONE_$?_X`) — otherwise
   the echoed command text is mistaken for command output (false success). When
   setting a prompt, the **PS1 string must not appear in an echoed command** (split
