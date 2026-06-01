@@ -36,6 +36,9 @@ MEDIA_DIR="$REPO_ROOT/$BOX_MEDIA_DIR"
 DIST_DIR="$REPO_ROOT/$BOX_DIST_DIR"
 WORK_DIR="$REPO_ROOT/$BOX_WORK_DIR"
 IMAGE="$REPO_ROOT/$BOX_IMAGE"
+# The image stem (e.g. box1-gaia, box2-teal) names every release artifact — derive
+# it from BOX_IMAGE so the packaging scripts are box-agnostic.
+BOX_BASENAME=$(basename "$BOX_IMAGE" .qcow2)
 ENC_IMAGE="$REPO_ROOT/${BOX_ENC_IMAGE:-dist/box1-enc.qcow2}"
 LUKS_KEYFILE="$REPO_ROOT/${BOX_LUKS_KEYFILE:-secret/luks.key}"
 PAYLOAD_DIR="$REPO_ROOT/build/${BOX_PAYLOAD_SUBDIR:-payloads}"
