@@ -34,9 +34,22 @@ You need **QEMU** (\`$BOX_QEMU\`).  Then, from this folder:
 \`\`\`sh
 ./play.sh
 \`\`\`
-The VM boots on this terminal (it's an emulated i386 — **first boot is slow**,
-give it a few minutes).  Wait for the SunOS login banner.  Stop the VM with
-**Ctrl-A** then **X**.  You attack it from your host on **127.0.0.1**:
+\`play.sh\` uses **KVM acceleration when available** (on an x86 host it boots in
+seconds) and falls back to pure emulation otherwise (a few minutes for the first
+boot — normal, not a hang).  The VM boots on this terminal; wait for the SunOS
+login banner.  Stop the VM with **Ctrl-A** then **X**.  Attack it from
+**127.0.0.1**.
+
+### Running on Windows
+
+\`play.sh\` is a shell script, so run it under **WSL2** (recommended — it's a Linux
+environment with KVM acceleration on Intel/AMD):
+\`\`\`powershell
+wsl --install        # admin PowerShell; reboot when prompted
+\`\`\`
+then inside the Linux shell: \`sudo apt-get install -y qemu-system-x86 telnet ftp\`,
+extract the bundle, and \`./play.sh\` as above.  (Native Windows works too if you run
+the \`qemu-system-i386\` command from \`play.sh\` by hand in \`cmd\`/PowerShell.)
 
 Start with what's listening on **127.0.0.1** (it's a 1990s box — expect 1990s
 services).  A period-appropriate toolkit on a modern attacker box:

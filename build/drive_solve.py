@@ -90,7 +90,7 @@ def main():
         # LUKS decryption + TCG makes the multiuser boot slow (~5-8 min); give the
         # retry loop generous headroom before declaring telnetd unreachable.
         tn = None
-        for attempt in range(16):
+        for attempt in range(48):   # ~8 min of headroom: the comment above cites a 5-8 min boot
             time.sleep(10)
             tn = pexpect.spawn(f"telnet 127.0.0.1 {TPORT}", encoding="latin-1", timeout=60)
             tn.logfile_read = open(SERLOG.replace(".log", "-telnet.log"), "w", encoding="latin-1")

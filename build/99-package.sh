@@ -28,7 +28,9 @@ chmod 600       "$REL/${BOX_BASENAME}.key"
 cat > "$REL/play.sh" <<PLAY
 #!/bin/sh
 # Boot "$BOX_HOSTNAME" — HOST-ONLY (the guest has no route to the internet).
-# Requires: qemu-system-i386.  The LUKS key is the .key file next to this script.
+# Requires: qemu-system-i386 (Linux or macOS; on Windows run this under WSL2 — see
+# README "Running on Windows").  Uses KVM acceleration when available (fast on x86),
+# and falls back to emulation automatically (accel=kvm:tcg).
 # Attack it from 127.0.0.1: telnet $BOX_FWD_TELNET, ftp $BOX_FWD_FTP, rlogin/rsh $BOX_FWD_SHELL.
 # Stop the VM with Ctrl-A then X (or Ctrl-C).
 set -eu
@@ -37,9 +39,10 @@ IMG="\$DIR/${BOX_BASENAME}.enc.qcow2"
 KEY="\${BOX_KEY:-\$DIR/${BOX_BASENAME}.key}"
 command -v ${BOX_QEMU} >/dev/null 2>&1 || { echo "install ${BOX_QEMU} (QEMU) first"; exit 1; }
 [ -f "\$KEY" ] || { echo "missing LUKS key: \$KEY"; exit 1; }
+[ -w /dev/kvm ] && echo ">> KVM available — boots in seconds." || echo ">> no KVM here — pure emulation; first boot takes a few minutes (normal, not a hang)."
 echo ">> booting $BOX_HOSTNAME (host-only).  Attack 127.0.0.1: telnet $BOX_FWD_TELNET / ftp $BOX_FWD_FTP / rlogin $BOX_FWD_SHELL"
-echo ">> first boot is slow (emulated i386); wait for the login banner, then telnet in."
-exec ${BOX_QEMU} -machine ${BOX_MACHINE},graphics=off -cpu ${BOX_CPU} -m ${BOX_MEM_MB} \\
+echo ">> wait for the SunOS login banner, then telnet in."
+exec ${BOX_QEMU} -machine ${BOX_MACHINE},graphics=off,accel=kvm:tcg -cpu ${BOX_CPU} -m ${BOX_MEM_MB} \\
   -object secret,id=sec0,file="\$KEY" \\
   -drive file="\$IMG",format=qcow2,if=ide,index=0,media=disk,encrypt.key-secret=sec0 \\
   -boot c -nographic -no-reboot \\
