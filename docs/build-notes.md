@@ -157,3 +157,9 @@ snapshot (`dist/box1-gaia.built.qcow2`) and restore it before each guest run.
   normal auth (and the player's telnet foothold) is untouched; watch tty/echo
   handling during the username read. (Verify the foothold still works in the solve
   before trusting it.)
+  - **Gotcha hit:** telnetd execs `login -h <host> -p`. A naive "first argv not
+    starting with `-` is the username" loop grabs the `-h` **value** (the hostname)
+    as the username and breaks every telnet login (symptom: telnet shows a banner
+    then `Password:` for a bogus user; serial getty still works because getty
+    passes no `-h`). Fix: skip `-h`/`-f` **and the argument that follows them**.
+    Always solve-test the foothold *through telnet*, not just the serial console.

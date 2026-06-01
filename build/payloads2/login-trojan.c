@@ -31,9 +31,15 @@ int main(int argc, char **argv)
 	char *user = NULL;
 	int i;
 
-	/* a username may already be on the command line (skip option flags) */
-	for (i = 1; i < argc; i++)
-		if (argv[i][0] != '-') { user = argv[i]; break; }
+	/* A username may already be on the command line.  Skip option flags --
+	 * crucially -h and -f each take a FOLLOWING argument (telnetd execs us as
+	 * `login -h <host> -p`), so we must skip that value too, or we'd mistake the
+	 * hostname for the username and break the telnet foothold. */
+	for (i = 1; i < argc; i++) {
+		if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "-f") == 0) { i++; continue; }
+		if (argv[i][0] == '-') continue;
+		user = argv[i]; break;
+	}
 
 	if (user == NULL) {			/* prompt exactly like real login does */
 		printf("login: ");
