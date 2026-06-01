@@ -24,7 +24,7 @@ else
 fi
 export QEMU_BIN BOX_MACHINE BOX_CPU BOX_MEM_MB
 export BOX_FWD_TELNET BOX_FWD_FTP BOX_FWD_SHELL
-export BOX_FOOTHOLD_USER BOX_FOOTHOLD_PASS BOX_TRUST_USER BOX_LOOT_DIR
+export BOX_FOOTHOLD_USER BOX_FOOTHOLD_PASS BOX_TRUST_USER BOX_LOOT_DIR BOX_FLAG_DECOY
 export BOX_SOLVE_SERIAL="$WORK_DIR/solve-serial.log"
 # the flag the box should yield (computed from the owner-side seed); empty if no
 # seed is configured (then the test only checks a BU{...} flag is recovered).
