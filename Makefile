@@ -16,7 +16,8 @@
 SHELL := /bin/sh
 B := build
 
-.PHONY: build dist-image deps fetch iso install inject theme luks solve package run clean distclean verify help
+.PHONY: build dist-image deps fetch iso install inject theme luks solve package shiptest run clean distclean verify help \
+        box2 box2-luks box2-package box2-solve box2-shiptest box2-dist
 
 help:
 	@echo "Targets: deps fetch iso install inject theme luks package | build | dist-image | run | solve | verify | clean | distclean"
@@ -31,6 +32,15 @@ luks:    ; $(B)/70-luks.sh
 solve:   ; $(B)/95-solve.sh
 package: ; $(B)/99-package.sh
 shiptest:; $(B)/98-shiptest.sh
+
+# ── Box 2 "The Traced Call" — clones the Box 1 base; reuses the pipeline ────────
+box2:          ; $(B)/40-inject2.sh
+box2-luks:     ; BOX_ENV_FILE=box2.env $(B)/70-luks.sh
+box2-package:  ; BOX_ENV_FILE=box2.env BOX_README=mk-player-readme2.sh $(B)/99-package.sh
+box2-solve:    ; $(B)/95-solve2.sh
+box2-shiptest: ; BOX_ENV_FILE=box2.env BOX_SOLVE_DRIVER=drive_solve2.py $(B)/98-shiptest.sh
+box2-dist: box2 box2-luks box2-package
+	@echo "=== Box 2 release bundle ready: dist/release/box2-teal/ ==="
 
 # Full pipeline, in order.  (luks is a separate packaging step — see 'dist'.)
 build: deps fetch iso install inject theme
