@@ -75,6 +75,69 @@ proot can't mount) → all guest planting goes through the **tar-on-raw-disk cha
   filesystem not available" early in boot → **retry** the mount (gen-flag /
   tripwire both do). The console warning is harmless once the retry takes.
 
+## Box 1 — proven recipes (what actually worked)
+
+The exact, working solutions, so they survive outside any one person's head. The
+canonical form is the committed scripts; these are the bits that took the most
+tries to get right.
+
+**Install QEMU invocation** (`build/drive_install.py`) — SCSI CD for the ISO, serial
+console, durable writes:
+```
+qemu-system-i386 -machine pc,graphics=off -cpu pentium -m 128 \
+  -drive file=box1-gaia.qcow2,format=qcow2,if=ide,index=0,media=disk,cache=writethrough \
+  -drive file=boot.flp,format=raw,if=floppy,unit=0,readonly=on \
+  -device lsi53c810,id=scsi0 \
+  -drive id=cd0,file=install.iso,format=raw,if=none,media=cdrom,readonly=on \
+  -device scsi-cd,bus=scsi0.0,drive=cd0 \
+  -boot a -nographic -serial stdio
+```
+Run `INSTALL_CACHE=writethrough` (durable across the post-extract SIGKILL).
+
+**sysinstall sequence over serial** (numeric tags, not name letters):
+boot floppy → `boot:` send `-h` (char-by-char) → UserConfig `config>` send `quit`
+→ terminal type `2` (VT100) → main menu `6` (Express) → FDISK `A` (whole disk) →
+"true partition entry?" CR (Yes) → `Q` → Boot Manager radiolist: `s` (Standard) +
+SPACE + CR → Disklabel `A` (auto) → `Q` → Distributions checklist *(let settle ~3 s)*
+→ `6` (Minimal) + SPACE + CR → Media `1` (CDROM) → "Last Chance" CR (Yes) → extract.
+
+**Finalize to a serial-login box** (`drive_install.py` finalize_phase): boot wd0
+single-user (`boot:` `-h -s`) → `fsck -y` → `mount -u -o rw /` → `mount -a` →
+interactive `passwd` root → sed `/etc/ttys` `ttyd0` → `"on secure" vt100 std.9600`
+→ `echo -h > /boot.config` → clean halt.
+
+**Durable guest writes** (every driver): `cache=writethrough` on the qcow2 drive +
+clean unmount before halt (`cd /; sync; umount -a; mount -u -o ro /; sync; halt`).
+This was THE root cause of most "mystery" failures (lost `spwd.db` → inetd "No such
+user root" → ports closed; lost `/kernel` → boot2 "Invalid format!" loop).
+
+**Boot the finished box / distributable** (`run.sh`, `drive_solve.py`): IDE disk,
+`-machine pc,graphics=off`, host-only user-net with `restrict=on` +
+`hostfwd=tcp:127.0.0.1:2323-:23` (telnet) etc. For the LUKS image add
+`-object secret,id=sec0,file=<key>` and `,encrypt.key-secret=sec0` on the drive.
+
+**Off-disk flag** (`build/payloads/gen-flag.sh`, hooked from `/etc/rc.local`): bake
+only the DECOY into the on-disk loot; store the real flag REVERSED in root-only
+`/etc/.fb` (no literal `BU{` to grep); at boot `mount_mfs -s 4096 /dev/wd0s1b` over
+the loot dir and write the real flag there (RAM only). Powered-off disk → decoy.
+
+**LUKS at rest** (`build/70-luks.sh`): `qemu-img convert -O qcow2 -o
+encrypt.format=luks,encrypt.key-secret=sec0 plain.qcow2 enc.qcow2` with `-object
+secret,id=sec0,file=<key>`. Verify it's opaque offline: `qemu-img convert -O raw
+enc.qcow2 /dev/null` WITHOUT the key must fail.
+
+**Solve gate** (`build/drive_solve.py`): walk the chain over telnet; the flag
+materialises a beat after telnetd (gen-flag runs at boot) so **retry the flag read
+until it differs from the decoy**. `BOX_NO_BOOT=1` drives an already-running box
+(used by the ship test).
+
+**Ship test** (`build/98-shiptest.sh`): extract the release tarball to a clean dir
+OUTSIDE the repo, `sha256sum -c`, boot via the bundled `play.sh`, solve it — proves
+the *shipped* artifact works, not just the build tree.
+
+**Iteration tip:** the solve SIGKILLs and dirties the working qcow2 — keep a clean
+snapshot (`dist/box1-gaia.built.qcow2`) and restore it before each guest run.
+
 ## Multi-box reuse (Box 2+)
 
 - The pipeline is parameterized: set `BOX_ENV_FILE=box2.env` and
